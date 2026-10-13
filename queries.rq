@@ -1,0 +1,258 @@
+# =====================================================================
+# queries.rq - SPARQL 1.1 queries for streaming_catalogue.ttl
+# Streaming Catalogue and Rights (Case 2C) - CSE 4007 Semantic Web
+# Author : Aayush Sharda (Reg. No. 235890136)
+#
+# Each query is complete on its own (own PREFIX block). Run them one at
+# a time. Reference date for "today" is fixed at 2026-10-13 so the
+# results are repeatable; replace it with NOW() for a live check.
+#
+# Q9 gives different answers with RDFS inference OFF and ON, and Q12
+# must be run with inference ON - see the README.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Q1. Size of the graph
+# Expected: 311 with inference off (the RDFS closure adds more; the number depends on the tool).
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT (COUNT(*) AS ?triples)
+WHERE { ?s ?p ?o }
+
+
+# ---------------------------------------------------------------------
+# Q2. CQ1 - Who contributed to which work, and in what role?
+# Expected: 9 rows - every person appears on all three works, each time in a different role.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?person ?work ?role
+WHERE {
+  ?credit a sv:Contribution ;
+          sv:contributor/rdfs:label   ?person ;
+          sv:contributionWork/rdfs:label ?work ;
+          sv:role/rdfs:label          ?role .
+}
+ORDER BY ?person ?work
+
+
+# ---------------------------------------------------------------------
+# Q3. CQ2 - Which people hold more than one role, and on how many works?
+# Expected: 3 rows - Dev Rao, Jo Paul and Maya Sen each hold 3 roles on 3 works.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?person (COUNT(DISTINCT ?role) AS ?roles) (COUNT(DISTINCT ?work) AS ?works)
+WHERE {
+  ?credit a sv:Contribution ;
+          sv:contributor ?p ;
+          sv:contributionWork ?work ;
+          sv:role ?role .
+  ?p rdfs:label ?person .
+}
+GROUP BY ?person
+HAVING (COUNT(DISTINCT ?role) > 1)
+ORDER BY ?person
+
+
+# ---------------------------------------------------------------------
+# Q4. CQ3 - Which episodes belong to a series, in order, and how long
+#           is each one?
+# Expected: 3 rows - E1 PT30M, E2 PT32M, E3 PT28M (Hindi versions).
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?series ?number ?episode ?language ?runtime
+WHERE {
+  ?s sv:hasEpisode ?e ;
+     rdfs:label ?series .
+  ?e sv:episodeNumber ?number ;
+     rdfs:label ?episode .
+  ?v sv:isVersionOf ?e ;
+     sv:inLanguage/rdfs:label ?language ;
+     sv:runtime ?runtime .
+}
+ORDER BY ?series ?number
+
+
+# ---------------------------------------------------------------------
+# Q5. CQ4 - Which language versions does each work have, and how long
+#           does each version run?
+# Expected: 7 rows - two versions each for Riverline and Last Signal, three episode versions.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?work ?language ?runtime
+WHERE {
+  ?v a sv:LanguageVersion ;
+     sv:isVersionOf/rdfs:label ?work ;
+     sv:inLanguage/rdfs:label  ?language ;
+     sv:runtime                ?runtime .
+}
+ORDER BY ?work ?language
+
+
+# ---------------------------------------------------------------------
+# Q6. CQ5 - Which licence covers which version, in which territory
+#           and for which rights period?
+# Expected: 7 rows - 5 versions licensed in India, 2 in Singapore.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?territory ?version ?start ?end
+WHERE {
+  ?licence a sv:Licence ;
+           sv:licensedVersion ?v ;
+           sv:territory/rdfs:label ?territory ;
+           sv:startDate ?start ;
+           sv:endDate   ?end .
+  ?v rdfs:label ?version .
+}
+ORDER BY ?territory ?start ?version
+
+
+# ---------------------------------------------------------------------
+# Q7. CQ6 - Which titles are available on the reference date, and where?
+#           (computed from the dates, not from the stored status)
+# Expected: 4 rows - Riverline, City Loop E1, E2 and E3, all in India. Last Signal is not listed.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT DISTINCT ?title ?series ?territory ?from ?until
+WHERE {
+  BIND ("2026-10-13"^^xsd:date AS ?today)
+  ?availability a sv:AvailabilityEvent ;
+                sv:underLicence ?licence ;
+                sv:startDate ?from ;
+                sv:endDate   ?until .
+  FILTER (?from <= ?today && ?today <= ?until)
+  ?licence sv:licensedVersion ?v ;
+           sv:territory/rdfs:label ?territory .
+  ?v sv:isVersionOf ?work .
+  ?work rdfs:label ?title .
+  OPTIONAL { ?s sv:hasEpisode ?work . ?s rdfs:label ?series }
+}
+ORDER BY ?territory ?title
+
+
+# ---------------------------------------------------------------------
+# Q8. CQ7 - How does each licence period differ from the availability
+#           period that runs under it?
+# Expected: 3 rows - the availability window sits inside (or ends with) its licence period.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?territory ?licenceStart ?availableFrom ?availableUntil ?licenceEnd ?status
+WHERE {
+  ?availability a sv:AvailabilityEvent ;
+                sv:underLicence ?licence ;
+                sv:startDate ?availableFrom ;
+                sv:endDate   ?availableUntil ;
+                sv:availabilityStatus/rdfs:label ?status .
+  ?licence sv:territory/rdfs:label ?territory ;
+           sv:startDate ?licenceStart ;
+           sv:endDate   ?licenceEnd .
+}
+ORDER BY ?licenceStart
+
+
+# ---------------------------------------------------------------------
+# Q9. CQ8 - Which resources are creative works?
+#           (needs RDFS inference: nothing is asserted as sv:CreativeWork)
+# Expected: 0 rows with inference OFF, 6 rows with RDFS inference ON.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?work
+WHERE { ?work a sv:CreativeWork }
+ORDER BY ?work
+
+
+# ---------------------------------------------------------------------
+# Q10. VALIDATION 1 - availability must start before it ends and lie
+#      inside its licence period.
+# Expected: no rows.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?availability ?from ?until ?licenceStart ?licenceEnd
+WHERE {
+  ?availability sv:underLicence ?licence ;
+                sv:startDate ?from ;
+                sv:endDate   ?until .
+  ?licence sv:startDate ?licenceStart ;
+           sv:endDate   ?licenceEnd .
+  FILTER (?from > ?until || ?from < ?licenceStart || ?until > ?licenceEnd)
+}
+
+
+# ---------------------------------------------------------------------
+# Q11. VALIDATION 2 - the stored status must agree with the dates on
+#      the as-of date.
+# Expected: no rows.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?availability ?stored ?computed
+WHERE {
+  ?availability a sv:AvailabilityEvent ;
+                sv:startDate ?from ;
+                sv:endDate   ?until ;
+                sv:asOfDate  ?asOf ;
+                sv:availabilityStatus/rdfs:label ?stored .
+  BIND (IF(?from <= ?asOf && ?asOf <= ?until, "Active",
+        IF(?asOf > ?until, "Expired", "Upcoming")) AS ?computed)
+  FILTER (STR(?stored) != ?computed)
+}
+
+
+# ---------------------------------------------------------------------
+# Q12. VALIDATION 3 - creative works must stay separate from versions,
+#      licences and availability events. Run WITH RDFS inference on.
+# Expected: false.
+# ---------------------------------------------------------------------
+PREFIX sv:   <https://example.org/streaming/vocab#>
+PREFIX ex:   <https://example.org/streaming/id/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+ASK {
+  ?x a sv:CreativeWork ;
+     a ?other .
+  VALUES ?other { sv:LanguageVersion sv:Licence sv:AvailabilityEvent sv:PeriodRecord }
+}

@@ -1,0 +1,455 @@
+# =====================================================================
+# Streaming Catalogue and Rights (Case 2C) - CSE 4007 Semantic Web
+# Author : Aayush Sharda (Reg. No. 235890136)
+# File   : streaming_catalogue.ttl   (Turtle 1.1, RDFS only)
+#
+# PART A  RDFS vocabulary   - namespace sv:
+# PART B  Sample data       - namespace ex:
+#
+# All dates, runtimes, role and genre assignments are illustrative.
+# Availability status is a snapshot taken on 2026-10-13 (asOfDate).
+# Start and end dates are inclusive.
+# =====================================================================
+
+@prefix sv:   <https://example.org/streaming/vocab#> .
+@prefix ex:   <https://example.org/streaming/id/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# =====================================================================
+# PART A - RDFS VOCABULARY
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# A1. Classes
+# ---------------------------------------------------------------------
+
+sv:CreativeWork a rdfs:Class ;
+    rdfs:label "Creative work"@en ;
+    rdfs:comment "A title in the catalogue: a film, a series or an episode. It carries no rights information."@en .
+
+sv:Film a rdfs:Class ;
+    rdfs:subClassOf sv:CreativeWork ;
+    rdfs:label "Film"@en ;
+    rdfs:comment "A standalone feature-length creative work."@en .
+
+sv:Series a rdfs:Class ;
+    rdfs:subClassOf sv:CreativeWork ;
+    rdfs:label "Series"@en ;
+    rdfs:comment "A creative work that is made up of episodes."@en .
+
+sv:Episode a rdfs:Class ;
+    rdfs:subClassOf sv:CreativeWork ;
+    rdfs:label "Episode"@en ;
+    rdfs:comment "One instalment of a series."@en .
+
+sv:Person a rdfs:Class ;
+    rdfs:label "Person"@en ;
+    rdfs:comment "A contributor who can be credited on creative works."@en .
+
+sv:Role a rdfs:Class ;
+    rdfs:label "Role"@en ;
+    rdfs:comment "A kind of contribution, such as director, actor, writer or narrator."@en .
+
+sv:Genre a rdfs:Class ;
+    rdfs:label "Genre"@en ;
+    rdfs:comment "A category of creative work, such as Drama or Documentary."@en .
+
+sv:Language a rdfs:Class ;
+    rdfs:label "Language"@en ;
+    rdfs:comment "A language in which a version of a creative work is offered."@en .
+
+sv:Territory a rdfs:Class ;
+    rdfs:label "Territory"@en ;
+    rdfs:comment "A country or region in which a licence applies."@en .
+
+sv:LanguageVersion a rdfs:Class ;
+    rdfs:label "Language version"@en ;
+    rdfs:comment "A creative work as offered in one language. It is the unit that has a runtime and that is licensed."@en .
+
+sv:Contribution a rdfs:Class ;
+    rdfs:label "Contribution"@en ;
+    rdfs:comment "A credit that links one person, one role and one creative work."@en .
+
+sv:PeriodRecord a rdfs:Class ;
+    rdfs:label "Period record"@en ;
+    rdfs:comment "A record that holds for a period with a start date and an end date (both inclusive)."@en .
+
+sv:Licence a rdfs:Class ;
+    rdfs:subClassOf sv:PeriodRecord ;
+    rdfs:label "Licence"@en ;
+    rdfs:comment "The legal right to stream specific language versions in one territory for a rights period."@en .
+
+sv:AvailabilityEvent a rdfs:Class ;
+    rdfs:subClassOf sv:PeriodRecord ;
+    rdfs:label "Availability event"@en ;
+    rdfs:comment "A period during which licensed versions are actually offered on the platform, under one licence."@en .
+
+sv:AvailabilityStatus a rdfs:Class ;
+    rdfs:label "Availability status"@en ;
+    rdfs:comment "Whether an availability event is active or expired on its as-of date."@en .
+
+# ---------------------------------------------------------------------
+# A2. Object properties (resource -> resource)
+# ---------------------------------------------------------------------
+
+sv:hasGenre a rdf:Property ;
+    rdfs:label "has genre"@en ;
+    rdfs:comment "Links a creative work to its genre."@en ;
+    rdfs:domain sv:CreativeWork ;
+    rdfs:range sv:Genre .
+
+sv:hasEpisode a rdf:Property ;
+    rdfs:label "has episode"@en ;
+    rdfs:comment "Links a series to one of its episodes."@en ;
+    rdfs:domain sv:Series ;
+    rdfs:range sv:Episode .
+
+sv:isVersionOf a rdf:Property ;
+    rdfs:label "is version of"@en ;
+    rdfs:comment "Links a language version to the creative work it is a version of."@en ;
+    rdfs:domain sv:LanguageVersion ;
+    rdfs:range sv:CreativeWork .
+
+sv:inLanguage a rdf:Property ;
+    rdfs:label "in language"@en ;
+    rdfs:comment "Links a language version to the language it is offered in."@en ;
+    rdfs:domain sv:LanguageVersion ;
+    rdfs:range sv:Language .
+
+sv:contributionWork a rdf:Property ;
+    rdfs:label "contribution work"@en ;
+    rdfs:comment "The creative work a contribution (credit) belongs to."@en ;
+    rdfs:domain sv:Contribution ;
+    rdfs:range sv:CreativeWork .
+
+sv:contributor a rdf:Property ;
+    rdfs:label "contributor"@en ;
+    rdfs:comment "The person named in a contribution (credit)."@en ;
+    rdfs:domain sv:Contribution ;
+    rdfs:range sv:Person .
+
+sv:role a rdf:Property ;
+    rdfs:label "role"@en ;
+    rdfs:comment "The role the person holds in a contribution (credit)."@en ;
+    rdfs:domain sv:Contribution ;
+    rdfs:range sv:Role .
+
+sv:licensedVersion a rdf:Property ;
+    rdfs:label "licensed version"@en ;
+    rdfs:comment "Links a licence to a language version that it covers."@en ;
+    rdfs:domain sv:Licence ;
+    rdfs:range sv:LanguageVersion .
+
+sv:territory a rdf:Property ;
+    rdfs:label "territory"@en ;
+    rdfs:comment "The territory in which a licence applies."@en ;
+    rdfs:domain sv:Licence ;
+    rdfs:range sv:Territory .
+
+sv:underLicence a rdf:Property ;
+    rdfs:label "under licence"@en ;
+    rdfs:comment "Links an availability event to the licence that allows it."@en ;
+    rdfs:domain sv:AvailabilityEvent ;
+    rdfs:range sv:Licence .
+
+sv:availabilityStatus a rdf:Property ;
+    rdfs:label "availability status"@en ;
+    rdfs:comment "The status (active or expired) of an availability event on its as-of date."@en ;
+    rdfs:domain sv:AvailabilityEvent ;
+    rdfs:range sv:AvailabilityStatus .
+
+# ---------------------------------------------------------------------
+# A3. Data properties (resource -> typed literal)
+# ---------------------------------------------------------------------
+
+sv:episodeNumber a rdf:Property ;
+    rdfs:label "episode number"@en ;
+    rdfs:comment "Position of an episode within its series (1 for E1, 2 for E2, ...)."@en ;
+    rdfs:domain sv:Episode ;
+    rdfs:range xsd:integer .
+
+sv:runtime a rdf:Property ;
+    rdfs:label "runtime"@en ;
+    rdfs:comment "Running time of a language version, written as an ISO 8601 duration such as PT1H40M."@en ;
+    rdfs:domain sv:LanguageVersion ;
+    rdfs:range xsd:duration .
+
+sv:startDate a rdf:Property ;
+    rdfs:label "start date"@en ;
+    rdfs:comment "First day of a period record (inclusive)."@en ;
+    rdfs:domain sv:PeriodRecord ;
+    rdfs:range xsd:date .
+
+sv:endDate a rdf:Property ;
+    rdfs:label "end date"@en ;
+    rdfs:comment "Last day of a period record (inclusive)."@en ;
+    rdfs:domain sv:PeriodRecord ;
+    rdfs:range xsd:date .
+
+sv:asOfDate a rdf:Property ;
+    rdfs:label "as-of date"@en ;
+    rdfs:comment "The date on which the stated availability status was determined."@en ;
+    rdfs:domain sv:AvailabilityEvent ;
+    rdfs:range xsd:date .
+
+# =====================================================================
+# PART B - SAMPLE DATA
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# B1. Reference data: genres, languages, territories, roles, statuses
+#     (reusable resources; each is created once and linked many times)
+# ---------------------------------------------------------------------
+
+ex:Drama a sv:Genre ;
+    rdfs:label "Drama"@en .
+
+ex:Documentary a sv:Genre ;
+    rdfs:label "Documentary"@en .
+
+ex:English a sv:Language ;
+    rdfs:label "English"@en ;
+    rdfs:seeAlso <http://dbpedia.org/resource/English_language> .
+
+ex:Hindi a sv:Language ;
+    rdfs:label "Hindi"@en ;
+    rdfs:seeAlso <http://dbpedia.org/resource/Hindi> .
+
+ex:Malayalam a sv:Language ;
+    rdfs:label "Malayalam"@en ;
+    rdfs:seeAlso <http://dbpedia.org/resource/Malayalam> .
+
+ex:India a sv:Territory ;
+    rdfs:label "India"@en ;
+    rdfs:seeAlso <http://dbpedia.org/resource/India> .
+
+ex:Singapore a sv:Territory ;
+    rdfs:label "Singapore"@en ;
+    rdfs:seeAlso <http://dbpedia.org/resource/Singapore> .
+
+ex:Director a sv:Role ;
+    rdfs:label "Director"@en .
+
+ex:Actor a sv:Role ;
+    rdfs:label "Actor"@en .
+
+ex:Writer a sv:Role ;
+    rdfs:label "Writer"@en .
+
+ex:Narrator a sv:Role ;
+    rdfs:label "Narrator"@en .
+
+ex:Active a sv:AvailabilityStatus ;
+    rdfs:label "Active"@en .
+
+ex:Expired a sv:AvailabilityStatus ;
+    rdfs:label "Expired"@en .
+
+# ---------------------------------------------------------------------
+# B2. Contributors
+# ---------------------------------------------------------------------
+
+ex:DevRao a sv:Person ;
+    rdfs:label "Dev Rao"@en .
+
+ex:MayaSen a sv:Person ;
+    rdfs:label "Maya Sen"@en .
+
+ex:JoPaul a sv:Person ;
+    rdfs:label "Jo Paul"@en .
+
+# ---------------------------------------------------------------------
+# B3. Creative works (titles only - no licence or availability data here)
+#     Genre assignments are illustrative.
+# ---------------------------------------------------------------------
+
+ex:Riverline a sv:Film ;
+    rdfs:label "Riverline"@en ;
+    sv:hasGenre ex:Drama .
+
+ex:LastSignal a sv:Film ;
+    rdfs:label "Last Signal"@en ;
+    sv:hasGenre ex:Documentary .
+
+ex:CityLoop a sv:Series ;
+    rdfs:label "City Loop"@en ;
+    sv:hasGenre ex:Drama ;
+    sv:hasEpisode ex:CityLoop_E1, ex:CityLoop_E2, ex:CityLoop_E3 .
+
+ex:CityLoop_E1 a sv:Episode ;
+    rdfs:label "City Loop E1"@en ;
+    sv:episodeNumber "1"^^xsd:integer .
+
+ex:CityLoop_E2 a sv:Episode ;
+    rdfs:label "City Loop E2"@en ;
+    sv:episodeNumber "2"^^xsd:integer .
+
+ex:CityLoop_E3 a sv:Episode ;
+    rdfs:label "City Loop E3"@en ;
+    sv:episodeNumber "3"^^xsd:integer .
+
+# ---------------------------------------------------------------------
+# B4. Contributions (credits): one node per person + role + work.
+#     Each person holds three different roles across the three titles.
+#     Role choices are illustrative.
+# ---------------------------------------------------------------------
+
+ex:Credit_Riverline_DevRao_Director a sv:Contribution ;
+    rdfs:label "Riverline - Dev Rao - Director"@en ;
+    sv:contributionWork ex:Riverline ;
+    sv:contributor ex:DevRao ;
+    sv:role ex:Director .
+
+ex:Credit_Riverline_MayaSen_Actor a sv:Contribution ;
+    rdfs:label "Riverline - Maya Sen - Actor"@en ;
+    sv:contributionWork ex:Riverline ;
+    sv:contributor ex:MayaSen ;
+    sv:role ex:Actor .
+
+ex:Credit_Riverline_JoPaul_Writer a sv:Contribution ;
+    rdfs:label "Riverline - Jo Paul - Writer"@en ;
+    sv:contributionWork ex:Riverline ;
+    sv:contributor ex:JoPaul ;
+    sv:role ex:Writer .
+
+ex:Credit_LastSignal_JoPaul_Director a sv:Contribution ;
+    rdfs:label "Last Signal - Jo Paul - Director"@en ;
+    sv:contributionWork ex:LastSignal ;
+    sv:contributor ex:JoPaul ;
+    sv:role ex:Director .
+
+ex:Credit_LastSignal_DevRao_Narrator a sv:Contribution ;
+    rdfs:label "Last Signal - Dev Rao - Narrator"@en ;
+    sv:contributionWork ex:LastSignal ;
+    sv:contributor ex:DevRao ;
+    sv:role ex:Narrator .
+
+ex:Credit_LastSignal_MayaSen_Writer a sv:Contribution ;
+    rdfs:label "Last Signal - Maya Sen - Writer"@en ;
+    sv:contributionWork ex:LastSignal ;
+    sv:contributor ex:MayaSen ;
+    sv:role ex:Writer .
+
+ex:Credit_CityLoop_MayaSen_Director a sv:Contribution ;
+    rdfs:label "City Loop - Maya Sen - Director"@en ;
+    sv:contributionWork ex:CityLoop ;
+    sv:contributor ex:MayaSen ;
+    sv:role ex:Director .
+
+ex:Credit_CityLoop_JoPaul_Actor a sv:Contribution ;
+    rdfs:label "City Loop - Jo Paul - Actor"@en ;
+    sv:contributionWork ex:CityLoop ;
+    sv:contributor ex:JoPaul ;
+    sv:role ex:Actor .
+
+ex:Credit_CityLoop_DevRao_Writer a sv:Contribution ;
+    rdfs:label "City Loop - Dev Rao - Writer"@en ;
+    sv:contributionWork ex:CityLoop ;
+    sv:contributor ex:DevRao ;
+    sv:role ex:Writer .
+
+# ---------------------------------------------------------------------
+# B5. Language versions. The runtime belongs to the version, because
+#     two versions of one work can run for different lengths.
+#     Version assignments and runtimes are illustrative.
+# ---------------------------------------------------------------------
+
+ex:Riverline_EN a sv:LanguageVersion ;
+    rdfs:label "Riverline (English)"@en ;
+    sv:isVersionOf ex:Riverline ;
+    sv:inLanguage ex:English ;
+    sv:runtime "PT1H40M"^^xsd:duration .
+
+ex:Riverline_HI a sv:LanguageVersion ;
+    rdfs:label "Riverline (Hindi)"@en ;
+    sv:isVersionOf ex:Riverline ;
+    sv:inLanguage ex:Hindi ;
+    sv:runtime "PT1H44M"^^xsd:duration .
+
+ex:LastSignal_EN a sv:LanguageVersion ;
+    rdfs:label "Last Signal (English)"@en ;
+    sv:isVersionOf ex:LastSignal ;
+    sv:inLanguage ex:English ;
+    sv:runtime "PT1H18M"^^xsd:duration .
+
+ex:LastSignal_ML a sv:LanguageVersion ;
+    rdfs:label "Last Signal (Malayalam)"@en ;
+    sv:isVersionOf ex:LastSignal ;
+    sv:inLanguage ex:Malayalam ;
+    sv:runtime "PT1H20M"^^xsd:duration .
+
+ex:CityLoop_E1_HI a sv:LanguageVersion ;
+    rdfs:label "City Loop E1 (Hindi)"@en ;
+    sv:isVersionOf ex:CityLoop_E1 ;
+    sv:inLanguage ex:Hindi ;
+    sv:runtime "PT30M"^^xsd:duration .
+
+ex:CityLoop_E2_HI a sv:LanguageVersion ;
+    rdfs:label "City Loop E2 (Hindi)"@en ;
+    sv:isVersionOf ex:CityLoop_E2 ;
+    sv:inLanguage ex:Hindi ;
+    sv:runtime "PT32M"^^xsd:duration .
+
+ex:CityLoop_E3_HI a sv:LanguageVersion ;
+    rdfs:label "City Loop E3 (Hindi)"@en ;
+    sv:isVersionOf ex:CityLoop_E3 ;
+    sv:inLanguage ex:Hindi ;
+    sv:runtime "PT28M"^^xsd:duration .
+
+# ---------------------------------------------------------------------
+# B6. Regional licences (the legal right: versions + territory + period)
+#     Licence assignments and dates are illustrative.
+# ---------------------------------------------------------------------
+
+ex:Licence_IN_Riverline a sv:Licence ;
+    rdfs:label "India licence - Riverline"@en ;
+    sv:licensedVersion ex:Riverline_EN, ex:Riverline_HI ;
+    sv:territory ex:India ;
+    sv:startDate "2026-01-01"^^xsd:date ;
+    sv:endDate "2026-12-31"^^xsd:date .
+
+ex:Licence_SG_LastSignal a sv:Licence ;
+    rdfs:label "Singapore licence - Last Signal"@en ;
+    sv:licensedVersion ex:LastSignal_EN, ex:LastSignal_ML ;
+    sv:territory ex:Singapore ;
+    sv:startDate "2026-01-01"^^xsd:date ;
+    sv:endDate "2026-06-30"^^xsd:date .
+
+ex:Licence_IN_CityLoop a sv:Licence ;
+    rdfs:label "India licence - City Loop episodes"@en ;
+    sv:licensedVersion ex:CityLoop_E1_HI, ex:CityLoop_E2_HI, ex:CityLoop_E3_HI ;
+    sv:territory ex:India ;
+    sv:startDate "2026-07-01"^^xsd:date ;
+    sv:endDate "2027-06-30"^^xsd:date .
+
+# ---------------------------------------------------------------------
+# B7. Availability events (when the platform actually offers the titles)
+#     Snapshot date 2026-10-13, end dates inclusive:
+#       one expired record and two active records.
+# ---------------------------------------------------------------------
+
+ex:Availability_IN_Riverline a sv:AvailabilityEvent ;
+    rdfs:label "Availability - Riverline in India"@en ;
+    sv:underLicence ex:Licence_IN_Riverline ;
+    sv:startDate "2026-03-01"^^xsd:date ;
+    sv:endDate "2026-12-31"^^xsd:date ;
+    sv:availabilityStatus ex:Active ;
+    sv:asOfDate "2026-10-13"^^xsd:date .
+
+ex:Availability_SG_LastSignal a sv:AvailabilityEvent ;
+    rdfs:label "Availability - Last Signal in Singapore"@en ;
+    sv:underLicence ex:Licence_SG_LastSignal ;
+    sv:startDate "2026-02-01"^^xsd:date ;
+    sv:endDate "2026-06-15"^^xsd:date ;
+    sv:availabilityStatus ex:Expired ;
+    sv:asOfDate "2026-10-13"^^xsd:date .
+
+ex:Availability_IN_CityLoop a sv:AvailabilityEvent ;
+    rdfs:label "Availability - City Loop in India"@en ;
+    sv:underLicence ex:Licence_IN_CityLoop ;
+    sv:startDate "2026-08-01"^^xsd:date ;
+    sv:endDate "2027-03-31"^^xsd:date ;
+    sv:availabilityStatus ex:Active ;
+    sv:asOfDate "2026-10-13"^^xsd:date .
